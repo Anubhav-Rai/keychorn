@@ -1,0 +1,22 @@
+PROCEDURE: Confirming Debounce Value in QMK Firmware (Keychron K8 Pro)
+
+1. Build your firmware:
+    qmk compile -kb keychron/k8_pro/ansi/rgb -km custom
+
+2. Locate the debounce object file:
+    .build/obj_keychron_k8_pro_ansi_rgb_custom/quantum/debounce/sym_defer_g.o
+
+3. Dump assembly:
+    arm-none-eabi-objdump -d .build/obj_keychron_k8_pro_ansi_rgb_custom/quantum/debounce/sym_defer_g.o | grep -A20 -i debounce
+
+4. Find the comparison instruction:
+    cmp r0, #X
+
+5. Determine actual debounce:
+    Actual debounce = X + 1
+
+Example:
+    cmp r0, #11 → DEBOUNCE = 12 ms
+
+6. Optional ELF check:
+    arm-none-eabi-objdump -D keychron_k8_pro_ansi_rgb_custom.elf | grep -A20 -i debounce
