@@ -487,6 +487,14 @@ __attribute__((weak)) void keychron_bt_indicator_color(uint8_t host_idx, uint8_t
 }
 #endif
 
+/* Override to return false from your keymap to suppress the shared BT host
+   indicator painting (SET_ALL_LED_OFF + per-host highlight) during the
+   pair/connect/reconnect transient. Useful when an RGB effect itself paints
+   the device-selection visual. Default is true, preserving stock behaviour. */
+__attribute__((weak)) bool keychron_bt_indicator_paint(void) {
+    return true;
+}
+
 #if defined(LED_MATRIX_ENABLE) || defined(RGB_MATRIX_ENABLE)
 __attribute__((weak)) void os_state_indicate(void) {
 #    if defined(NUM_LOCK_INDEX)
@@ -546,7 +554,7 @@ bool LED_INDICATORS_KB(void) {
         }
         static uint8_t last_host_index = 0xFF;
 
-        if (indicator_config.value) {
+        if (indicator_config.value && keychron_bt_indicator_paint()) {
             uint8_t host_index = indicator_config.value & 0x0F;
 
             if (indicator_config.highlight) {

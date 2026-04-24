@@ -114,5 +114,13 @@ void keychron_bt_indicator_color(uint8_t host_idx, uint8_t *r, uint8_t *g, uint8
         *b = host_rgb[i][2];
     }
 }
+
+/* In the HOST_SOLO / HOST_ALL profiles the effect itself paints the selected
+   device's color, so skip the shared indicator's blackout + blink. This also
+   removes the ~2 s visual delay between press and the new color appearing. */
+bool keychron_bt_indicator_paint(void) {
+    uint8_t mode = rgb_matrix_get_mode();
+    return mode != RGB_MATRIX_CUSTOM_HOST_SOLO && mode != RGB_MATRIX_CUSTOM_HOST_ALL;
+}
 #    endif
 #endif
