@@ -16,6 +16,12 @@
 
 #include QMK_KEYBOARD_H
 
+#ifdef KC_BLUETOOTH_ENABLE
+#    include "indicator.h"
+#    include "transport.h"
+extern indicator_config_t indicator_config;
+#endif
+
 // clang-format off
 enum layers{
   MAC_BASE,
@@ -23,6 +29,22 @@ enum layers{
   WIN_BASE,
   WIN_FN
 };
+
+#ifdef KC_BLUETOOTH_ENABLE
+/* LED matrix indices for the three BT host indicators.
+   Must match HOST_LED_MATRIX_LIST in keyboards/keychron/k8_pro/config.h.
+   Non-static so the HOST_SOLO/HOST_ALL effects in rgb_matrix_user.inc can read them. */
+const uint8_t host_led_idx[3] = { 17, 18, 19 };
+
+/* Per-host colors: 1=red, 2=blue, 3=yellow */
+const uint8_t host_rgb[3][3] = {
+    { 255,   0,   0 },
+    {   0,   0, 255 },
+    { 255, 255,   0 },
+};
+
+uint8_t current_bt_host = 0;
+#endif
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 [MAC_BASE] = LAYOUT_tkl_ansi(
@@ -58,3 +80,39 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      KC_TRNS,  KC_TRNS,  KC_TRNS,                                KC_TRNS,                                KC_TRNS,  KC_TRNS,  KC_TRNS,  KC_TRNS,  KC_TRNS,  KC_TRNS,  KC_TRNS)
 
 };
+
+#ifdef KC_BLUETOOTH_ENABLE
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed) {
+        switch (keycode) {
+            case BT_HST1: current_bt_host = 1; break;
+            case BT_HST2: current_bt_host = 2; break;
+            case BT_HST3: current_bt_host = 3; break;
+        }
+    }
+    return true;
+}
+
+/* Pick up the active host from the shared indicator state on fresh boot
+   (auto-reconnect sets indicator_config.value before the user presses any
+   BT_HSTx key). Cached so the HOST_SOLO / HOST_ALL effects know the color. */
+void housekeeping_task_user(void) {
+    if (current_bt_host == 0 && get_transport() == TRANSPORT_BLUETOOTH && indicator_config.value) {
+        uint8_t h = indicator_config.value & 0x0F;
+        if (h >= 1 && h <= 3) current_bt_host = h;
+    }
+}
+
+#    ifdef RGB_MATRIX_ENABLE
+/* Override for the weak default in keychron/bluetooth/indicator.c. Picks the
+   on-phase color of the BT host blink (pair/connect/reconnect). */
+void keychron_bt_indicator_color(uint8_t host_idx, uint8_t *r, uint8_t *g, uint8_t *b) {
+    if (host_idx >= 1 && host_idx <= 3) {
+        uint8_t i = host_idx - 1;
+        *r = host_rgb[i][0];
+        *g = host_rgb[i][1];
+        *b = host_rgb[i][2];
+    }
+}
+#    endif
+#endif

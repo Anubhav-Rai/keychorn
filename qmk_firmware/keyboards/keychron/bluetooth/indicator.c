@@ -475,6 +475,18 @@ void indicator_task(void) {
     indicator_battery_low();
 }
 
+#ifdef RGB_MATRIX_ENABLE
+/* Override this from your keymap to paint the BT host indicator in a custom
+   colour. Default is blue for every host, matching the legacy SET_LED_BT
+   behaviour. host_idx is 1-based (1..HOST_DEVICES_COUNT). */
+__attribute__((weak)) void keychron_bt_indicator_color(uint8_t host_idx, uint8_t *r, uint8_t *g, uint8_t *b) {
+    (void)host_idx;
+    *r = 0;
+    *g = 0;
+    *b = 255;
+}
+#endif
+
 #if defined(LED_MATRIX_ENABLE) || defined(RGB_MATRIX_ENABLE)
 __attribute__((weak)) void os_state_indicate(void) {
 #    if defined(NUM_LOCK_INDEX)
@@ -545,7 +557,13 @@ bool LED_INDICATORS_KB(void) {
             }
 
             if (indicator_config.value & 0x80) {
+#    ifdef RGB_MATRIX_ENABLE
+                uint8_t _r = 0, _g = 0, _b = 255;
+                keychron_bt_indicator_color(host_index, &_r, &_g, &_b);
+                rgb_matrix_set_color(host_led_matrix_list[host_index - 1], _r, _g, _b);
+#    else
                 SET_LED_BT(host_led_matrix_list[host_index - 1]);
+#    endif
             } else {
                 SET_LED_OFF(host_led_matrix_list[host_index - 1]);
             }
